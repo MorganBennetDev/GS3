@@ -16,7 +16,7 @@ function exportS3() {
     var s3 = S3.getInstance("<<AWS AccessKey>>", "<<AWS SecretKey>>");
     var doc = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = doc.getActiveSheet();
-    var json = getRowsData_(sheet);
+    var json = getRowsData(sheet);
 
     year = (new Date()).getFullYear();
 
@@ -38,29 +38,14 @@ function exportS3() {
 //   - columnHeadersRowIndex: specifies the row number where the column names are stored.
 //       This argument is optional and it defaults to the row immediately above range; 
 // Returns an Array of objects.
-function getRowsData_(sheet) {
+function getRowsData(sheet) {
     var headersRange = sheet.getRange(1, 1, sheet.getFrozenRows(), sheet.getMaxColumns());
     var headers = headersRange.getValues()[0];
     var dataRange = sheet.getRange(sheet.getFrozenRows() + 1, 1, sheet.getMaxRows(), sheet.getMaxColumns());
-    var objects = getObjects_(dataRange.getValues(), normalizeHeaders(headers));
+    var objects = getObjects(dataRange.getValues(), normalizeHeaders(headers));
 
     return objects;
 
-}
-
-// getColumnsData iterates column by column in the input range and returns an array of objects.
-// Each object contains all the data for a given column, indexed by its normalized row name.
-// Arguments:
-//   - sheet: the sheet object that contains the data to be processed
-//   - range: the exact range of cells where the data is stored
-//   - rowHeadersColumnIndex: specifies the column number where the row names are stored.
-//       This argument is optional and it defaults to the column immediately left of the range; 
-// Returns an Array of objects.
-function getColumnsData_(sheet, range, rowHeadersColumnIndex) {
-    rowHeadersColumnIndex = rowHeadersColumnIndex || range.getColumnIndex() - 1;
-    var headersTmp = sheet.getRange(range.getRow(), rowHeadersColumnIndex, range.getNumRows(), 1).getValues();
-    var headers = normalizeHeaders(arrayTranspose(headersTmp)[0]);
-    return getObjects(arrayTranspose(range.getValues()), headers);
 }
 
 
@@ -69,7 +54,7 @@ function getColumnsData_(sheet, range, rowHeadersColumnIndex) {
 // Arguments:
 //   - data: JavaScript 2d array
 //   - keys: Array of Strings that define the property names for the objects to create
-function getObjects_(data, keys) {
+function getObjects(data, keys) {
     var objects = [];
     for (var i = 0; i < data.length; ++i) {
         var object = {};
@@ -120,21 +105,4 @@ function normalizeHeader(header) {
 //   - cellData: string
 function isCellEmpty(cellData) {
     return typeof (cellData) == "string" && cellData == "";
-}
-
-// Given a JavaScript 2d Array, this function returns the transposed table.
-// Arguments:
-//   - data: JavaScript 2d Array
-// Returns a JavaScript 2d Array
-// Example: arrayTranspose([[1,2,3],[4,5,6]]) returns [[1,4],[2,5],[3,6]].
-function arrayTranspose(data) {
-    let rows = data.length;
-    if (rows === 0) return null;
-
-    let cols = data[0].length;
-    if (cols === 0) return null;
-
-    return (new Array(cols))
-        .map((_, i) => ((new Array(rows))
-            .map((_, j) => data[j][i])));
 }
