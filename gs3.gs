@@ -42,7 +42,7 @@ function getRowsData_(sheet) {
     var headersRange = sheet.getRange(1, 1, sheet.getFrozenRows(), sheet.getMaxColumns());
     var headers = headersRange.getValues()[0];
     var dataRange = sheet.getRange(sheet.getFrozenRows() + 1, 1, sheet.getMaxRows(), sheet.getMaxColumns());
-    var objects = getObjects_(dataRange.getValues(), normalizeHeaders_(headers));
+    var objects = getObjects_(dataRange.getValues(), normalizeHeaders(headers));
 
     return objects;
 
@@ -59,8 +59,8 @@ function getRowsData_(sheet) {
 function getColumnsData_(sheet, range, rowHeadersColumnIndex) {
     rowHeadersColumnIndex = rowHeadersColumnIndex || range.getColumnIndex() - 1;
     var headersTmp = sheet.getRange(range.getRow(), rowHeadersColumnIndex, range.getNumRows(), 1).getValues();
-    var headers = normalizeHeaders_(arrayTranspose_(headersTmp)[0]);
-    return getObjects(arrayTranspose_(range.getValues()), headers);
+    var headers = normalizeHeaders(arrayTranspose(headersTmp)[0]);
+    return getObjects(arrayTranspose(range.getValues()), headers);
 }
 
 
@@ -76,7 +76,7 @@ function getObjects_(data, keys) {
         var hasData = false;
         for (var j = 0; j < data[i].length; ++j) {
             var cellData = data[i][j];
-            if (isCellEmpty_(cellData)) {
+            if (isCellEmpty(cellData)) {
                 continue;
             }
             object[keys[j]] = cellData;
@@ -92,15 +92,8 @@ function getObjects_(data, keys) {
 // Returns an Array of normalized Strings.
 // Arguments:
 //   - headers: Array of Strings to normalize
-function normalizeHeaders_(headers) {
-    var keys = [];
-    for (var i = 0; i < headers.length; ++i) {
-        var key = normalizeHeader_(headers[i]);
-        if (key.length > 0) {
-            keys.push(key);
-        }
-    }
-    return keys;
+function normalizeHeaders(headers) {
+    return headers.map(normalizeHeader);
 }
 
 // Normalizes a string, by removing all alphanumeric characters and using mixed case
@@ -112,48 +105,21 @@ function normalizeHeaders_(headers) {
 //   "First Name" -> "firstName"
 //   "Market Cap (millions) -> "marketCapMillions
 //   "1 number at the beginning is ignored" -> "numberAtTheBeginningIsIgnored"
-function normalizeHeader_(header) {
-    var key = "";
-    var upperCase = false;
-    for (var i = 0; i < header.length; ++i) {
-        var letter = header[i];
-        if (letter == " " && key.length > 0) {
-            upperCase = true;
-            continue;
-        }
-        if (!isAlnum_(letter)) {
-            continue;
-        }
-        if (key.length == 0 && isDigit_(letter)) {
-            continue; // first character must be a letter
-        }
-        if (upperCase) {
-            upperCase = false;
-            key += letter.toUpperCase();
-        } else {
-            key += letter.toLowerCase();
-        }
+function normalizeHeader(header) {
+    let parts = header.split(/\W+/g);
+
+    while (/^\d/.test(parts[0]) && parts.length > 0) {
+        parts.shift();
     }
-    return key;
+
+    return parts.map(s => (s.charAt(0).toUpperCase() + s.slice(1))).join('');
 }
 
 // Returns true if the cell where cellData was read from is empty.
 // Arguments:
 //   - cellData: string
-function isCellEmpty_(cellData) {
+function isCellEmpty(cellData) {
     return typeof (cellData) == "string" && cellData == "";
-}
-
-// Returns true if the character char is alphabetical, false otherwise.
-function isAlnum_(char) {
-    return char >= 'A' && char <= 'Z' ||
-        char >= 'a' && char <= 'z' ||
-        isDigit_(char);
-}
-
-// Returns true if the character char is a digit, false otherwise.
-function isDigit_(char) {
-    return char >= '0' && char <= '9';
 }
 
 // Given a JavaScript 2d Array, this function returns the transposed table.
@@ -161,21 +127,14 @@ function isDigit_(char) {
 //   - data: JavaScript 2d Array
 // Returns a JavaScript 2d Array
 // Example: arrayTranspose([[1,2,3],[4,5,6]]) returns [[1,4],[2,5],[3,6]].
-function arrayTranspose_(data) {
-    if (data.length == 0 || data[0].length == 0) {
-        return null;
-    }
+function arrayTranspose(data) {
+    let rows = data.length;
+    if (rows === 0) return null;
 
-    var ret = [];
-    for (var i = 0; i < data[0].length; ++i) {
-        ret.push([]);
-    }
+    let cols = data[0].length;
+    if (cols === 0) return null;
 
-    for (var i = 0; i < data.length; ++i) {
-        for (var j = 0; j < data[i].length; ++j) {
-            ret[j][i] = data[i][j];
-        }
-    }
-
-    return ret;
+    return (new Array(cols))
+        .map((_, i) => ((new Array(rows))
+            .map((_, j) => data[j][i])));
 }
